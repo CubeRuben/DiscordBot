@@ -50,6 +50,28 @@ bot.on('message', (message) => {
             case prefix + "TRANSLATE":
                 translate(message.content.substring(args[0].length + args[1].length + 2, message.content.length), { to: args[1] }).then(res => sendWedhook(res, message.channel, message.author.username, message.author.avatarURL)).catch(err => message.channel.send(err));
             break;
+            case prefix + "LANG":
+                if (args[1] = "RU"){
+                    if (message.member.roles.get('676436972872400916')){
+                        message.member.removeRole('676436972872400916');
+                        message.channel.send("**Роль успешна удалена**");
+                    }else{
+                        message.member.addRole('676436972872400916'); 
+                        message.channel.send("**Роль успешна добавлена**");
+                    }
+                }
+            break;
+            case prefix + "LANG":
+                if (args[1] = "EN"){
+                    if (message.member.roles.get('676843539128385540')){
+                        message.member.removeRole('676843539128385540');
+                        message.channel.send("**Role successfully deleted**");
+                    }else{
+                        message.member.addRole('676843539128385540');
+                        message.channel.send("**Role successfully added**");
+                    }
+                }
+            break;
             case prefix + "ADDBADWORD":
                 if (message.member.hasPermission("READ_MESSAGE_HISTORY")) 
                 {
