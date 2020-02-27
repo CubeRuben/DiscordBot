@@ -33,7 +33,7 @@ bot.on('ready', () => {
 });
 
 bot.on('message', (message) => {
-    if (!message.member && message.author.bot) {
+    if (!message.member || message.author.bot) {
         return;
     }
 
@@ -48,7 +48,7 @@ bot.on('message', (message) => {
         if (message.content.toUpperCase().includes(badWords[i])) {
             let embed = new Discord.RichEmbed()
                 .setAuthor("Bad Word", message.author.avatarURL)
-                .setField("Message", `\`${message.content}\``)
+                .addField("Message", `\`${message.content}\``)
                 .addField("Channel", message.channel, true)
                 .addField("User", message.author, true)
                 .setColor("#00FFFF")
@@ -133,7 +133,7 @@ bot.on('message', (message) => {
 
 //Лог об удаленом сообщение
 bot.on(`messageDelete`, message => {
-    if ((messageNew.author.bot) || (messageNew.member.roles.get('657244197841141770'))) {
+    if ((message.author.bot) || (message.member.roles.get('657244197841141770'))) {
         return;
     }
     let embed = new Discord.RichEmbed()
