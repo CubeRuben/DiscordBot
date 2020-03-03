@@ -28,7 +28,7 @@ function langRole(message, roleName) {
 
 bot.on('ready', () => {
     console.log("Bot loaded");
-
+    bot.user.setActivity('SCP: Data Unlocked', { type: "PLAYING" })
     badWords = fs.readFileSync("bad_words.txt").toString().toUpperCase().split(' ');
 });
 
@@ -67,45 +67,53 @@ bot.on('message', (message) => {
             translate(message.content.substring(args[0].length + args[1].length + 2, message.content.length), { to: args[1] }).then(res => sendWedhook(res, message.channel, message.author.username, message.author.avatarURL)).catch(err => message.channel.send(err));
             break;
         case prefix + "HELP":
+            if (args[1] == "RU" || args[1] == "RUS" || args[1] == "RUSSIAN"){
+            let embedru = new Discord.RichEmbed()
+                .setTitle("Bot commands")
+                .addField("For everyone:", "**.lang (Имя языка)** - Получить доступ к этому чату на этом языке\n**.translate/.tr (на язык) (текст)** - Переводит сообщение\n**.badwords** - Присылает сообщение с плохими словами", false);
+            message.channel.send(embedru);
+            }else{
             let embed = new Discord.RichEmbed()
                 .setTitle("Bot commands")
                 .addField("For everyone:", "**.lang (language name)** - Get access to chat with this language\n**.translate/.tr (language to translate) (text to translate)** - Translate message\n**.badwords** - List of bad words", false);
-            message.channel.send(embed);
+            message.channel.send(embed); }
             break;
-            /*case prefix + "ADDBADWORD":
-                if (message.member.hasPermission("MANAGE_CHANNELS")) {
-                    if (args[1]) {
-                        let string = fs.readFileSync("bad_words.txt").toString();
-
-                        if (!string.includes(args[1])) {
-                            fs.writeFileSync("bad_words.txt", string + " " + args[1]);
-                            badWords.push(args[1]);
-                            message.channel.send("**Successfully added**");
-                        } else {
-                            message.channel.send("**Already added**");
+        case prefix + "ADDBADWORD":
+            if (message.member.roles.get("673529272857788447", "657244197841141770")) {
+                if (args[1]) {
+                    let string = fs.readFileSync("bad_words.txt").toString();
+                    if (!string.includes(args[1])) {
+                        fs.writeFileSync("bad_words.txt", string + " " + args[1]);
+                        badWords.push(args[1]);
+                        message.channel.send("**Successfully added**");
+                    } else {
+                        message.channel.send("**Already added**");
                         }
                     } else {
                         message.channel.send("**Missing bad word**");
                     }
                 }
                 break;
-            case prefix + "REMOVEBADWORD":
-                if (message.member.hasPermission("MANAGE_CHANNELS")) {
-                    if (args[1]) {
-                        let string = fs.readFileSync("bad_words.txt").toString();
+        case prefix + "REMOVEBADWORD":
+            if (message.member.roles.get("673529272857788447", "657244197841141770")) {
+                if (args[1]) {
+                    let string = fs.readFileSync("bad_words.txt").toString();
 
-                        if (string.includes(args[1])) {
-                            fs.writeFileSync("bad_words.txt", string.replace(` ${ args[1] }`, '').replace(`${ args[1] } `, '').replace(' ', ''));
-                            badWords.splice(badWords.indexOf(args[1]));
-                            message.channel.send("**Successfully removed**");
-                        } else {
-                            message.channel.send("**Bad words list is not including this word**");
-                        }
+                    if (string.includes(args[1])) {
+                        fs.writeFileSync("bad_words.txt", string.replace(` ${ args[1] }`, '').replace(`${ args[1] } `, '').replace(' ', ''));
+                        badWords.splice(badWords.indexOf(args[1]));
+                        message.channel.send("**Successfully removed**");
                     } else {
-                        message.channel.send("**Missing bad word**");
+                        message.channel.send("**Bad words list is not including this word**");
+                    }
+                    } else {
+                    message.channel.send("**Missing bad word**");
                     }
                 }
-                break;*/
+            break;
+        case prefix + "BADWORDS":
+            message.channel.send(`**Bad words:** ${ fs.readFileSync("bad_words.txt").toString() }`);
+            break;
         case prefix + "BADWORDS":
             message.channel.send(`**Bad words:** ${ fs.readFileSync("bad_words.txt").toString() }`);
             break;
@@ -123,7 +131,9 @@ bot.on('message', (message) => {
                     langRole(message, "Russian");
                     break;
                 default:
-                    message.channel.send("**Language name undefined**");
+                    let embed = new Discord.RichEmbed()
+                    .setTitle("Language name undefined")
+                    message.channel.send(embed);
                     break;
             }
             break;
@@ -133,42 +143,38 @@ bot.on('message', (message) => {
 
 //Лог об удаленом сообщение
 bot.on(`messageDelete`, message => {
-    if ((message.author.bot) || (message.member.roles.get('657244197841141770'))) {
-        return;
-    }
     let embed = new Discord.RichEmbed()
-        .setAuthor("Messeage Deleted", message.author.avatarURL)
-        .setField("Message", `\`${message.content}\``)
-        .addField("Channel", message.channel, true)
-        .addField("User", message.author, true)
-        .setColor("#00FFFF")
-        .setFooter("SCP-079 Logs")
-        .setTimestamp();
-    message.guild.channels.get('676438061135167519').send(embed).catch(err => console.error(err));
+    .setAuthor(`Message Deleted`, message.author.avatarURL)
+    .addField("Mesasge", message.content)
+    .addField("Channel", message.channel, true)
+    .addField("User", message.author, true)
+    .setColor("#00FFFF")
+    .setFooter("SCP-079 Logs System")
+    .setTimestamp();
+    message.guild.channels.get('676438061135167519').send(embed);
 });
-
 //Лог об изменённом сообщении
-bot.on(`messageUpdate`, (messageOld, messageNew) => {
-    if ((messageNew.author.bot) || (messageNew.member.roles.get('657244197841141770'))) {
-        return;
-    }
+bot.on(`messageUpdate`, (oldMessage, newMessage) => {
+    if(oldMessage.content === newMessage.content) return; 
     let embed = new Discord.RichEmbed()
-        .setAuthor("Messeage Deleted", messageNew.author.avatarURL)
-        .addField("Old Message", `\`${ messageOld.content }\``, true)
-        .addField("New Message", `\`${ messageNew.content }\``, true)
-        .addBlankField(false)
-        .addField("Channel", messageNew.channel, true)
-        .addField("User", messageNew.author, true)
-        .setColor("#00FF00")
-        .setFooter("SCP-079 Logs")
-        .setTimestamp();
-    messageNew.guild.channels.get('676438061135167519').send(embed).catch(err => console.error(err));
+    .setAuthor("Message Edited", newMessage.author.avatarURL)
+    .addField("Old Message", oldMessage.content, true)
+    .addField("New Message", newMessage.content, true)
+    .addBlankField()
+    .addField("Channel", newMessage.channel, true)
+    .addField("User", newMessage.author, true)
+    .setFooter("SCP-079 Logs System")
+    .setColor("#00FF00")
+    .setTimestamp();
+    newMessage.guild.channels.get('676438061135167519').send(embed).catch(err => console.error(err));
 });
 
 
 //Приветственное сообщение
 bot.on('guildMemberAdd', member => {
-    member.user.send("```fix\nWelcome to Discord server\nType .help to see list of commands\n```");
+    const Welcome = new Discord.RichEmbed()
+    .setTitle("Welcome to Discord server\nType .help to see list of commands")
+    member.user.send(Welcome);
 });
 
 //Логирование бота
