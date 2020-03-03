@@ -177,5 +177,5 @@ bot.on('guildMemberAdd', member => {
     member.user.send(Welcome);
 });
 
-//Логирование бота
+//Логирование бота 
 bot.login(login.token);
