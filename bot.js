@@ -1,5 +1,7 @@
 const Discord = require("discord.js");
 const bot = new Discord.Client();
+const cheerio = require('cheerio');
+const request = require('request');
 const fs = require('fs');
 const login = require('./login.json');
 const translate = require('translate-google');
