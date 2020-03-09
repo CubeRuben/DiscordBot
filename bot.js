@@ -1,7 +1,6 @@
-const Discord = require("discord.js");
-const bot = new Discord.Client();
-const cheerio = require('cheerio');
-const request = require('request');
+const { Client, MessageEmbed } = require('discord.js');
+const bot = new Client();
+
 const fs = require('fs');
 const login = require('./login.json');
 const translate = require('translate-google');
@@ -11,19 +10,17 @@ var badWords = []
 
 function sendWedhook(message, channel, username, avatar) {
     channel.createWebhook(username, avatar)
-        .then(webhook => {
-            webhook.send(message);
-            webhook.delete();
-        })
+    webhook.send(message);
+    webhook.delete();
 }
 
 function langRole(message, roleName) {
-    roleForAdd = message.guild.roles.find(role => role.name == roleName);
-    if (message.member.roles.get(roleForAdd.id)) {
-        message.member.removeRole(roleForAdd);
+    roleForAdd = message.guild.roles.cache.find(role => role.name == roleName);
+    if (message.member.roles.cache.get(roleForAdd.id)) {
+        message.member.roles.remove(roleForAdd, "LANG");
         message.channel.send("**Role removed**");
     } else {
-        message.member.addRole(roleForAdd);
+        message.member.roles.add(roleForAdd, "LANG");
         message.channel.send("**Role added**");
     }
 }
@@ -41,14 +38,15 @@ bot.on('message', (message) => {
 
     let args = message.content.toUpperCase().replace('   ', ' ').replace('  ', ' ').split(' ');
 
-    if (message.content.replace('!', '').includes(message.guild.members.get(bot.user.id).toString())) {
-        message.channel.send(message.member + ", " + answersOnPing[Math.floor(Math.random() * answersOnPing.length)]);
+    if (message.content.includes(bot.user.id)) {
+        console.log("DDD")
+        message.channel.send(`${message.author}, ${answersOnPing[Math.floor(Math.random() * answersOnPing.length)]}`);
         return;
     }
 
     for (let i = 0; i < badWords.length; i++) {
         if (message.content.toUpperCase().includes(badWords[i])) {
-            let embed = new Discord.RichEmbed()
+            let embed = new MessageEmbed()
                 .setAuthor("Bad Word", message.author.avatarURL)
                 .addField("Message", `\`${message.content}\``)
                 .addField("Channel", message.channel, true)
@@ -56,32 +54,33 @@ bot.on('message', (message) => {
                 .setColor("#00FFFF")
                 .setFooter("SCP-079 Logs")
                 .setTimestamp();
-            message.guild.channels.get('676438061135167519').send(embed);
+            const logs = message.guild.channels.cache.find(ch => ch.name === 'logs');
+            logs.send(embed);
             break;
         }
     }
 
     //Обработчик команд
     switch (args[0]) {
-        case prefix + "TR":
+        /*case prefix + "TR":
         case prefix + "TRAN":
         case prefix + "TRANSLATE":
             translate(message.content.substring(args[0].length + args[1].length + 2, message.content.length), { to: args[1] }).then(res => sendWedhook(res, message.channel, message.author.username, message.author.avatarURL)).catch(err => message.channel.send(err));
-            break;
+            break;*/
         case prefix + "HELP":
             if (args[1] == "RU" || args[1] == "RUS" || args[1] == "RUSSIAN"){
-            let embedru = new Discord.RichEmbed()
+            let embedru = new MessageEmbed()
                 .setTitle("Bot commands")
                 .addField("For everyone:", "**.lang (Имя языка)** - Получить доступ к этому чату на этом языке\n**.translate/.tr (на язык) (текст)** - Переводит сообщение\n**.badwords** - Присылает сообщение с плохими словами", false);
             message.channel.send(embedru);
             }else{
-            let embed = new Discord.RichEmbed()
+            let embed = new MessageEmbed()
                 .setTitle("Bot commands")
                 .addField("For everyone:", "**.lang (language name)** - Get access to chat with this language\n**.translate/.tr (language to translate) (text to translate)** - Translate message\n**.badwords** - List of bad words", false);
             message.channel.send(embed); }
             break;
         case prefix + "ADDBADWORD":
-            if (message.member.roles.get("673529272857788447", "657244197841141770")) {
+            if (message.member.roles.cache.get("657244197841141770", "673529272857788447")) {
                 if (args[1]) {
                     let string = fs.readFileSync("bad_words.txt").toString();
                     if (!string.includes(args[1])) {
@@ -97,7 +96,7 @@ bot.on('message', (message) => {
                 }
                 break;
         case prefix + "REMOVEBADWORD":
-            if (message.member.roles.get("673529272857788447", "657244197841141770")) {
+            if (message.member.roles.cache.get("657244197841141770", "673529272857788447")) {
                 if (args[1]) {
                     let string = fs.readFileSync("bad_words.txt").toString();
 
@@ -133,7 +132,7 @@ bot.on('message', (message) => {
                     langRole(message, "Russian");
                     break;
                 default:
-                    let embed = new Discord.RichEmbed()
+                    let embed = new MessageEmbed()
                     .setTitle("Language name undefined")
                     message.channel.send(embed);
                     break;
@@ -145,7 +144,8 @@ bot.on('message', (message) => {
 
 //Лог об удаленом сообщение
 bot.on(`messageDelete`, message => {
-    let embed = new Discord.RichEmbed()
+    const logs = message.guild.channels.cache.find(ch => ch.name === 'logs');
+    let embed = new MessageEmbed()
     .setAuthor(`Message Deleted`, message.author.avatarURL)
     .addField("Mesasge", message.content)
     .addField("Channel", message.channel, true)
@@ -153,28 +153,28 @@ bot.on(`messageDelete`, message => {
     .setColor("#00FFFF")
     .setFooter("SCP-079 Logs System")
     .setTimestamp();
-    message.guild.channels.get('676438061135167519').send(embed);
+    logs.send(embed);
 });
 //Лог об изменённом сообщении
 bot.on(`messageUpdate`, (oldMessage, newMessage) => {
     if(oldMessage.content === newMessage.content) return; 
-    let embed = new Discord.RichEmbed()
-    .setAuthor("Message Edited", newMessage.author.avatarURL)
-    .addField("Old Message", oldMessage.content, true)
-    .addField("New Message", newMessage.content, true)
-    .addBlankField()
-    .addField("Channel", newMessage.channel, true)
-    .addField("User", newMessage.author, true)
-    .setFooter("SCP-079 Logs System")
-    .setColor("#00FF00")
-    .setTimestamp();
-    newMessage.guild.channels.get('676438061135167519').send(embed).catch(err => console.error(err));
+    let embed = new MessageEmbed()
+        .setAuthor("Message Edited", newMessage.author.avatarURL)
+        .addField("Old Message", oldMessage.content, true)
+        .addField("New Message", newMessage.content, true)
+        .addField("p", "l")
+        .addField("Channel", newMessage.channel, true)
+        .addField("User", newMessage.author, true)
+        .setFooter("SCP-079 Logs System")
+        .setColor("#00FF00")
+        .setTimestamp();
+    const logs = newMessage.guild.channels.cache.find(ch => ch.name === 'logs');
+    logs.send(embed);
 });
-
 
 //Приветственное сообщение
 bot.on('guildMemberAdd', member => {
-    const Welcome = new Discord.RichEmbed()
+    const Welcome = new MessageEmbed()
     .setTitle("Welcome to Discord server\nType .help to see list of commands")
     member.user.send(Welcome);
 });
