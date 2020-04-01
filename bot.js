@@ -1,19 +1,26 @@
-const { Client, MessageEmbed, Webhook } = require('discord.js');
+const { Client, MessageEmbed, Webhook, MessageAttachment} = require('discord.js');
 const fs = require('fs');
 const login = require('./login.json');
 const translate = require('translate-google');
-//const YTDL = require('ytdl-core-discord');
-//const YTCheck = require('ytdl-core');
-//const YTSR = require('yt-search');
+const YTDL = require('ytdl-core-discord');
+const YTCheck = require('ytdl-core');
+const YTSR = require('yt-search');
 
 const bot = new Client();
 const prefix = ".";
-const textAnswersOnPing = ["Yes?", "No", "Maybe", "No you", "Yes", "Yes you may", "Stay me alone", "I want to die"];
+const textAnswersOnPing = ["Yes?", "No", "Maybe", "No you", "Yes", "Yes you may", "Leave me alone", "I want to die"];
 const imageAnswersOnPing = [
     "http://scp-ru.wdfiles.com/local--files/scp-173/scp-173_th.jpg",
     "https://pm1.narvii.com/6779/410e87bbef4d158dc1b002162bb7b255843127afv2_hq.jpg",
     "https://scp-ru.wdfiles.com/local--files/scp-106/106emergenceklay.jpg",
-    "https://i.pinimg.com/originals/ac/0c/e4/ac0ce4f6178c50e80fe13697c5ef60dc.png"
+    "https://i.pinimg.com/originals/ac/0c/e4/ac0ce4f6178c50e80fe13697c5ef60dc.png",
+    "https://lurkmore.so/images/6/61/Scplogo-1.png",
+    "https://sun9-60.userapi.com/c830709/v830709516/5f7ee/EVEZ0iCrtnE.jpg?ava=1",
+    "https://sun9-48.userapi.com/c845420/v845420702/15067c/Yqq4aQ5RGsc.jpg?ava=1",
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRaEjKEAvI4ehvT2BRUNvF4kiK7dxrBtSrErrHhALJ2KXC7yiYp&s",
+    "https://avatars.mds.yandex.net/get-pdb/1926685/9763ec84-ce8a-431c-8110-46fb83848605/s1200",
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRIvt2Iaw0xsC4m0DeLKjNVIVmcVfDMdew6VdVle-BUeDGE34jg&s"
+
 ];
 var badWords = []
 var voiceConnection;
@@ -30,16 +37,22 @@ function langRole(message, roleName) {
     roleForAdd = message.guild.roles.cache.find(role => role.name == roleName);
     if (message.member.roles.cache.get(roleForAdd.id)) {
         message.member.roles.remove(roleForAdd, "LANG");
-        message.channel.send("**Role removed**");
+        let embed = new MessageEmbed()
+        .setTitle(`Role removed`)
+        message.channel.send(embed);
     } else {
         message.member.roles.add(roleForAdd, "LANG");
-        message.channel.send("**Role added**");
+        let embed = new MessageEmbed()
+        .setTitle(`Role added`)
+        message.channel.send(embed);
     }
 }
 
 function joinToVoice(message) {
     if (!message.member.voice.channel) {
-        message.channel.send(`**You is not in voice chat**`);
+        let embed = new MessageEmbed()
+        .setTitle(`You are not in the voice channel`)
+        message.channel.send(embed)
         return false;
     }
 
@@ -49,14 +62,19 @@ function joinToVoice(message) {
             joinToVoice(message.member.voice.channel);
         }
 
-        message.channel.send(`**Already joined**`);
+        
+        let embed = new MessageEmbed()
+        .setTitle(`Already joined`)
+        message.channel.send(embed);
         return false;
     }
 
     message.member.voice.channel.join().then(con => {
         voiceConnection = con;
     });
-    message.channel.send(`**Joined to \`${message.member.voice.channel.name}\`**`);
+    let embed = new MessageEmbed()
+    .setTitle(`Joined to \`${message.member.voice.channel.name}\``)
+    message.channel.send(embed);
     return true;
 }
 
@@ -74,7 +92,9 @@ function searchMusic(name, message) {
 
     YTSR(name, (err, res) => {
         if (err) {
-            message.send("**Nothing founded**");
+            let embed = new MessageEmbed()
+            .setTitle("Nothing founded")
+            message.channel.send(embed);
             return;
         }
 
@@ -91,6 +111,10 @@ function playMusic(url, message) {
         const embed = new MessageEmbed()
             .setTitle(`**${info.title}**`)
             .setURL(url)
+            .setThumbnail(info.player_response.videoDetails.thumbnail.thumbnails[2].url)
+            .addField("Author", info.player_response.videoDetails.author, true)
+            .addField("Time", Math.floor(info.player_response.videoDetails.lengthSeconds / 60) + ':' + info.player_response.videoDetails.lengthSeconds % 60, true)
+            .addField(`View`, info.player_response.videoDetails.viewCount, true)
             .setColor("#FF0000");
         message.channel.send(embed);
     });
@@ -100,7 +124,9 @@ function playMusic(url, message) {
         voiceConnection.broadcast.setVolume(0);
     });
 }
-
+function stop(){
+    voiceConnection.broadcast.end()
+}
 bot.on('ready', () => {
     console.log("Bot loaded");
     bot.user.setActivity('SCP: Data Unlocked', { type: "PLAYING" })
@@ -109,14 +135,23 @@ bot.on('ready', () => {
         translateWebhook = webhooks.get('686538386890293277');
     });
 });
-
+bot.on('messageReactionAdd', (messageReaction, user) => {
+    if(!messageReaction.message.channel.id == "693916521457516564") return;
+    if(user.id == "676436045620838420") return;
+    let embed = new MessageEmbed()
+    .setAuthor("Была поставлена реакция", user.avatarURL())
+    .setColor("GREEN")
+    .addField("Эмодзи", messageReaction.emoji.name, true)
+    .addField("Пользователем", user, true)
+    .addField("Собщение", messageReaction.message.content)
+    messageReaction.message.author.send(embed)
+    });
 bot.on('message', (message) => {
     if (!message.member || message.author.bot) {
         return;
     }
-
     let args = message.content.toUpperCase().replace('   ', ' ').replace('  ', ' ').split(' ');
-
+    
     if (message.content.includes(bot.user.id)) {
         if (Math.random() >= 0.75) {
             message.channel.send({ files: [imageAnswersOnPing[Math.floor(Math.random() * imageAnswersOnPing.length)]] });
@@ -124,8 +159,19 @@ bot.on('message', (message) => {
         }
         message.channel.send(`${message.author}, ${textAnswersOnPing[Math.floor(Math.random() * textAnswersOnPing.length)]}`);
         return;
-    }
 
+    }
+    if(message.channel.id == "657478442551345212"){
+        if(message.attachments.size == "1") return;
+        message.react('🟢');
+        message.react('🟡');
+        message.react('🟠');
+        message.react('🔴');
+    }
+    if(message.channel.id == "693916521457516564"){
+        message.react('❓');
+        message.react('❔');
+    }
     for (let i = 0; i < badWords.length; i++) {
         if (message.content.toUpperCase().includes(badWords[i])) {
             let embed = new MessageEmbed()
@@ -144,17 +190,23 @@ bot.on('message', (message) => {
 
     //Обработчик команд
     switch (args[0]) {
+
         case prefix + "TR":
         case prefix + "TRAN":
         case prefix + "TRANSLATE":
             translate(message.content.substring(args[0].length + args[1].length + 2, message.content.length), { to: args[1] }).then(res => sendTranslate(res, message.channel, message.author.username, message.author.avatarURL())).catch(err => message.channel.send(err));
             break;
-        case prefix + "HELP":
-            {
+        case prefix + "HELP":  
                 let embed = new MessageEmbed()
                 let title = "Bot commands";
                 let field1 = "For everyone:";
-                let field2 = "**.lang (language name)** - Get access to channel with this language\n**.translate/.tr (language to translate) (text to translate)** - Translate message\n**.badwords** - List of bad words";
+                let field2 = "**.lang (language name)** - Get access to channel with this language\n**.translate/.tr (language to translate) (text to translate)** - Translate message\n**.badwords** - List of bad words\n**.join** - Connect the bot to the voice channels\n**.leave** - Disconnect the bot from the voice channels\n**. play (URL or video name)** - Search and play the video\n**.stop** - Stops video playback";
+                if(args[1] == "RU"){
+                    let embedRU = new MessageEmbed()
+                    setTitle("Команды бота")
+                    addField("Для всех", "**.lang (язык)** - Выдаёт доступ к каналам данного языка\n**.translate/.tr/.tran (на язык) (текст)** - Переводит текст\n**.badwords** - Выдаёт список плохих слов\n**.join** - Присоединение бота к голосовым каналам\n**.leave** - Отключение бота от голосовых каналов\n**.play (URL или название видео)** - Производит поиск и воспроизведение видео\n**.stop** - Останавливает воспроизведение видео")
+                    message.channel.send(embedRU)
+                }else{
                 /*if (args[1]) {
                     translate(title, { to: args[1] }).then(res => {
                         title = res;
@@ -189,7 +241,7 @@ bot.on('message', (message) => {
                 }
             }
             break;
-            /*case prefix + "REMOVEBADWORD":
+            case prefix + "REMOVEBADWORD":
                 if (message.member.hasPermission("MANAGE_CHANNELS")) {
                     if (args[1]) {
                         let string = fs.readFileSync("bad_words.txt").toString();
@@ -205,7 +257,7 @@ bot.on('message', (message) => {
                         message.channel.send("**Missing bad word**");
                     }
                 }
-                break;*/
+                break;
         case prefix + "BADWORDS":
             {
                 const embed = new MessageEmbed()
@@ -236,7 +288,7 @@ bot.on('message', (message) => {
             }
             break;
 
-            /*case prefix + "JOIN":
+            case prefix + "JOIN":
                 joinToVoice(message);
                 break;
             case prefix + "LEAVE":
@@ -245,7 +297,9 @@ bot.on('message', (message) => {
             case prefix + "PLAY":
                 {
                     if (!message.member.voice.channel) {
-                        message.channel.send("**You is not in voice chat**");
+                        let embed = new MessageEmbed()
+                        .setTitle(`You is not in voice chat`)
+                        message.channel.send(embed);
                         break;
                     }
 
@@ -259,7 +313,8 @@ bot.on('message', (message) => {
                     searchMusic(message.content.substring(args[0].length, message.content.length - 1), message);
                 }
                 break;
-            case prefix + "VOLUME":
+                /*case prefix + "STOP":
+                    stop()
                 break;*/
     }
 
@@ -268,6 +323,7 @@ bot.on('message', (message) => {
 //Лог об удаленом сообщение
 bot.on(`messageDelete`, message => {
     const logs = message.guild.channels.cache.find(ch => ch.name == 'logs');
+    if(message.attachments.size == "1") return;
     let embed = new MessageEmbed()
         .setAuthor(`Message Deleted`, message.author.avatarURL)
         .addField("Mesasge", message.content)
@@ -281,11 +337,12 @@ bot.on(`messageDelete`, message => {
 //Лог об изменённом сообщении
 bot.on(`messageUpdate`, (oldMessage, newMessage) => {
     if (oldMessage.content == newMessage.content) return;
+    if(oldMessage.attachments.size == "1") return;
     let embed = new MessageEmbed()
         .setAuthor("Message Edited", newMessage.author.avatarURL)
         .addField("Old Message", oldMessage.content, true)
         .addField("New Message", newMessage.content, true)
-        .addField("p", "l")
+        .addField("s", "d")
         .addField("Channel", newMessage.channel, true)
         .addField("User", newMessage.author, true)
         .setFooter("SCP-079 Logs System")
