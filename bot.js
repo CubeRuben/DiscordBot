@@ -1,12 +1,12 @@
 const { Client, MessageEmbed, Webhook, MessageAttachment} = require('discord.js');
 const fs = require('fs');
-const login = require('./login.json');
+const {token} = require('./login.json');
 const translate = require('translate-google');
 const YTDL = require('ytdl-core-discord');
 const YTCheck = require('ytdl-core');
 const YTSR = require('yt-search');
 
-const bot = new Client();
+const bot = new Client({ partials: ['MESSAGE', 'CHANNEL', 'REACTION', 'USER', 'GUILD_MEMBER'] });
 const prefix = ".";
 const textAnswersOnPing = ["Yes?", "No", "Maybe", "No you", "Yes", "Yes you may", "Leave me alone", "I want to die"];
 const imageAnswersOnPing = [
@@ -17,9 +17,7 @@ const imageAnswersOnPing = [
     "https://lurkmore.so/images/6/61/Scplogo-1.png",
     "https://sun9-60.userapi.com/c830709/v830709516/5f7ee/EVEZ0iCrtnE.jpg?ava=1",
     "https://sun9-48.userapi.com/c845420/v845420702/15067c/Yqq4aQ5RGsc.jpg?ava=1",
-    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRaEjKEAvI4ehvT2BRUNvF4kiK7dxrBtSrErrHhALJ2KXC7yiYp&s",
-    "https://avatars.mds.yandex.net/get-pdb/1926685/9763ec84-ce8a-431c-8110-46fb83848605/s1200",
-    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRIvt2Iaw0xsC4m0DeLKjNVIVmcVfDMdew6VdVle-BUeDGE34jg&s"
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRaEjKEAvI4ehvT2BRUNvF4kiK7dxrBtSrErrHhALJ2KXC7yiYp&s"
 
 ];
 var badWords = []
@@ -124,9 +122,12 @@ function playMusic(url, message) {
         voiceConnection.broadcast.setVolume(0);
     });
 }
-function stop(){
-    voiceConnection.broadcast.end()
+/*function stop(){
+    voiceConnection.dispather.pause();
 }
+function start(){
+    voiceConnection.dispather.resume();
+}*/
 bot.on('ready', () => {
     console.log("Bot loaded");
     bot.user.setActivity('SCP: Data Unlocked', { type: "PLAYING" })
@@ -136,7 +137,7 @@ bot.on('ready', () => {
     });
 });
 bot.on('messageReactionAdd', (messageReaction, user) => {
-    if(!messageReaction.message.channel.id == "693916521457516564") return;
+    if(messageReaction.message.channel.id !== "693916521457516564") return;
     if(user.id == "676436045620838420") return;
     let embed = new MessageEmbed()
     .setAuthor("Была поставлена реакция", user.avatarURL())
@@ -144,7 +145,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
     .addField("Эмодзи", messageReaction.emoji.name, true)
     .addField("Пользователем", user, true)
     .addField("Собщение", messageReaction.message.content)
-    messageReaction.message.author.send(embed)
+    messageReaction.message.author.send(embed);
     });
 bot.on('message', (message) => {
     if (!message.member || message.author.bot) {
@@ -190,21 +191,37 @@ bot.on('message', (message) => {
 
     //Обработчик команд
     switch (args[0]) {
-
         case prefix + "TR":
         case prefix + "TRAN":
         case prefix + "TRANSLATE":
             translate(message.content.substring(args[0].length + args[1].length + 2, message.content.length), { to: args[1] }).then(res => sendTranslate(res, message.channel, message.author.username, message.author.avatarURL())).catch(err => message.channel.send(err));
             break;
+        case prefix + "MESSAGEDEVS":
+            if(!args[1]){
+                let embed = new MessageEmbed()
+                .setTitle("You did not write an offer");
+                message.channel.send(embed);
+                return;
+            }
+            let mess = args.splice(1).join(' ');
+            let embed1 = new MessageEmbed()
+            .setTitle("Commmunity message")
+            .addField("User", message.author, true)
+            .addField("Channel", message.channel, true)
+            .setDescription(`**Message:** ${mess}`)
+            .setTimestamp();
+            const communitymessages = message.guild.channels.cache.find(ch => ch.name == 'community-messages');
+            communitymessages.send(embed1);
+            break;
         case prefix + "HELP":  
                 let embed = new MessageEmbed()
                 let title = "Bot commands";
                 let field1 = "For everyone:";
-                let field2 = "**.lang (language name)** - Get access to channel with this language\n**.translate/.tr (language to translate) (text to translate)** - Translate message\n**.badwords** - List of bad words\n**.join** - Connect the bot to the voice channels\n**.leave** - Disconnect the bot from the voice channels\n**. play (URL or video name)** - Search and play the video\n**.stop** - Stops video playback";
+                let field2 = "**.lang (language name)** - Get access to channel with this language\n**.translate/.tr (language to translate) (text to translate)** - Translate message\n**.messagedevs (message)** - Sends your offer to developers\n**.badwords** - List of bad words\n**.join** - Connect the bot to the voice channels\n**.leave** - Disconnect the bot from the voice channels\n**.play (URL or video name)** - Search and play the video\n**.stop** - Stops video playback";
                 if(args[1] == "RU"){
                     let embedRU = new MessageEmbed()
-                    setTitle("Команды бота")
-                    addField("Для всех", "**.lang (язык)** - Выдаёт доступ к каналам данного языка\n**.translate/.tr/.tran (на язык) (текст)** - Переводит текст\n**.badwords** - Выдаёт список плохих слов\n**.join** - Присоединение бота к голосовым каналам\n**.leave** - Отключение бота от голосовых каналов\n**.play (URL или название видео)** - Производит поиск и воспроизведение видео\n**.stop** - Останавливает воспроизведение видео")
+                    .setTitle("Команды бота")
+                    .addField("Для всех", "**.lang (язык)** - Выдаёт доступ к каналам данного языка\n**.translate/.tr/.tran (на язык) (текст)** - Переводит текст\n**.messagedevs (сообщениe)** - Отправляет разработчикам ваше сообщение \n**.badwords** - Выдаёт список плохих слов\n**.join** - Присоединение бота к голосовым каналам\n**.leave** - Отключение бота от голосовых каналов\n**.play (URL или название видео)** - Производит поиск и воспроизведение видео\n**.stop** - Останавливает воспроизведение видео")
                     message.channel.send(embedRU)
                 }else{
                 /*if (args[1]) {
@@ -315,6 +332,9 @@ bot.on('message', (message) => {
                 break;
                 /*case prefix + "STOP":
                     stop()
+                break;
+                case prefix + "START":
+                    start()
                 break;*/
     }
 
@@ -364,4 +384,4 @@ bot.on('error', error => {
 });
 
 //Логирование бота 
-bot.login(login.token);
+bot.login(token);
